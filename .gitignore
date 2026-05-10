@@ -30,12 +30,12 @@ db.sqlite3
 DeliveryBackend/media/
 
 # Environment variables
+.env
 DeliveryBackend/.env
 frontend/.env
 frontend/.env.*
 frontend/.env.local
 frontend/.env.production
-
 
 
 # IDE
