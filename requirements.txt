@@ -1,0 +1,6 @@
+Django==5.2
+djangorestframework==3.16.0
+django-environ==0.11.2
+django-cors-headers==4.7.0
+psycopg2-binary==2.9.10
+Faker==37.1.0
