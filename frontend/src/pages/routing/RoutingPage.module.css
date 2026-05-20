@@ -1,0 +1,189 @@
+.page {
+  padding: 32px;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.pageHeader {
+  margin-bottom: 28px;
+}
+
+.pageTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.pageSubtitle {
+  margin-top: 8px;
+  color: #6b7280;
+}
+
+.form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+
+  background: white;
+  border-radius: 22px;
+  padding: 24px;
+
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.select {
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  padding: 14px;
+  background: white;
+  font-size: 14px;
+  outline: none;
+}
+
+.select:focus {
+  border-color: #2563eb;
+}
+
+.buildBtn {
+  align-self: end;
+
+  border: none;
+  border-radius: 14px;
+
+  padding: 14px 18px;
+
+  background: #111827;
+  color: white;
+
+  font-weight: 600;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s,
+    background 0.2s;
+}
+
+.buildBtn:hover:not(:disabled) {
+  background: #1f2937;
+  transform: translateY(-1px);
+}
+
+.buildBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.routeCard {
+  margin-top: 28px;
+
+  background: white;
+  border-radius: 22px;
+
+  padding: 24px;
+
+  box-shadow: 0 10px 28px rgba(0,0,0,0.06);
+}
+
+.routeTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.routeTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.distanceBadge {
+  background: #dbeafe;
+  color: #1d4ed8;
+
+  padding: 10px 14px;
+  border-radius: 999px;
+
+  font-weight: 700;
+}
+
+.nodesList {
+  margin-top: 24px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nodeItem {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+
+  padding: 16px;
+}
+
+.nodeIndex {
+  width: 38px;
+  height: 38px;
+
+  border-radius: 50%;
+
+  background: #111827;
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 700;
+}
+
+.nodeName {
+  font-weight: 600;
+  color: #111827;
+}
+
+.nodeType {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.loading,
+.error {
+  padding: 40px;
+  text-align: center;
+}
+
+.loading {
+  color: #6b7280;
+}
+
+.error {
+  color: #dc2626;
+}
+
+.errorBox {
+  margin-top: 20px;
+
+  background: #fee2e2;
+  color: #991b1b;
+
+  border-radius: 16px;
+
+  padding: 16px;
+}

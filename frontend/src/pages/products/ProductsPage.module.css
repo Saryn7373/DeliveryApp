@@ -1,0 +1,201 @@
+.page {
+  padding: 32px;
+  min-height: 100vh;
+  background: #f5f7fb;
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+.sidebar {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  height: fit-content;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.sidebarTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.storeList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.storeCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    transform 0.2s,
+    background 0.2s;
+}
+
+.storeCard:hover {
+  transform: translateY(-2px);
+  border-color: #2563eb;
+}
+
+.storeCardActive {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.storeName {
+  font-weight: 600;
+  color: #111827;
+}
+
+.storeAddress {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.content {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.contentHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.selectedStoreTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.selectedStoreAddress {
+  margin-top: 4px;
+  color: #6b7280;
+}
+
+.searchInput {
+  width: 260px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: #2563eb;
+}
+
+.productsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.productCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px;
+  background: white;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.productCard:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+.productTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.productName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.stockBadge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.inStock {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.lowStock {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.outOfStock {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.productDescription {
+  margin-top: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.productBottom {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.loading,
+.error,
+.emptyState,
+.emptyProducts {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.error {
+  color: #dc2626;
+}
