@@ -128,7 +128,9 @@ class OrderViewSet(mixins.ListModelMixin,
         target = serializer.validated_data['status']
 
         try:
-            order.transition(target)
+            from .commands import TransitionOrderCommand, OrderCommandInvoker
+            invoker = OrderCommandInvoker()
+            invoker.run(TransitionOrderCommand(order, target))
         except ValidationError as exc:
             return Response(
                 {'detail': exc.message},

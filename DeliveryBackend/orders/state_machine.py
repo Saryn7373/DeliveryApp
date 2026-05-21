@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from orders.observers import OrderStatusLogger, CourierStatusObserver
 
 ALLOWED_TRANSITIONS: dict[str, list[str]] = {
     'DRAFT':             ['ASSEMBLING', 'CANCELLED'],
@@ -95,6 +96,7 @@ TRANSITIONS: dict[str, BaseTransition] = {
 class OrderStateMachine:
     def __init__(self, order):
         self.order = order
+        self._observers = [OrderStatusLogger(), CourierStatusObserver()]
 
     def can_transition(self, target_status: str) -> bool:
         return target_status in ALLOWED_TRANSITIONS.get(self.order.status, [])
@@ -106,3 +108,5 @@ class OrderStateMachine:
                 f"Разрешено: {ALLOWED_TRANSITIONS.get(self.order.status, [])}"
             )
         TRANSITIONS[target_status].execute(self.order)
+        for obs in self._observers:
+            obs.update(target_status, self.order)
