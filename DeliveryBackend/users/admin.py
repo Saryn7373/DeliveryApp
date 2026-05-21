@@ -17,5 +17,5 @@ class CourierAdmin(admin.ModelAdmin):
 
 @admin.register(DeliveryAddress)
 class DeliveryAddressAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'street_address', 'node')
-    search_fields = ('street_address', 'customer__user__username')
+    list_display = ('id', 'street_address', 'node')
+    search_fields = ('street_address',)

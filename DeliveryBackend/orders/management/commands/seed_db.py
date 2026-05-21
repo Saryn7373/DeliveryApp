@@ -76,25 +76,19 @@ ADDRESS_COORDS = [
     ('Войковская, 7',         55.818, 37.499),
 ]
 
-PRODUCTS_BY_STORE = [
-    [
-        ('Молоко 1л',         89.00),
-        ('Хлеб белый',        55.00),
-        ('Масло сливочное',   145.00),
-        ('Яйца С1 10шт',      110.00),
-    ],
-    [
-        ('Куриное филе 1кг',  350.00),
-        ('Рис длиннозёрный',   95.00),
-        ('Паста Barilla 500г', 130.00),
-        ('Томатный соус',      80.00),
-    ],
-    [
-        ('Апельсины 1кг',     120.00),
-        ('Бананы 1кг',         89.00),
-        ('Яблоки Гала 1кг',    99.00),
-        ('Сок мультифрукт',   115.00),
-    ],
+PRODUCTS = [
+    ('Молоко 1л',          89.00),
+    ('Хлеб белый',         55.00),
+    ('Масло сливочное',   145.00),
+    ('Яйца С1 10шт',      110.00),
+    ('Куриное филе 1кг',  350.00),
+    ('Рис длиннозёрный',   95.00),
+    ('Паста Barilla 500г', 130.00),
+    ('Томатный соус',      80.00),
+    ('Апельсины 1кг',     120.00),
+    ('Бананы 1кг',         89.00),
+    ('Яблоки Гала 1кг',    99.00),
+    ('Сок мультифрукт',   115.00),
 ]
 
 
@@ -115,11 +109,11 @@ class Command(BaseCommand):
         store_nodes, addr_nodes = self._seed_nodes()
         self._seed_edges(store_nodes, addr_nodes)
         stores = self._seed_stores(store_nodes)
-        self._seed_products(stores)
+        products = self._seed_products()
         customers = self._seed_customers(count=6)
         couriers = self._seed_couriers(store_nodes, count=3)
-        addresses = self._seed_addresses(addr_nodes, customers)
-        self._seed_orders(customers, stores, addresses, couriers)
+        addresses = self._seed_addresses(addr_nodes)
+        self._seed_orders(customers, stores, addresses, couriers, products)
 
         self.stdout.write(self.style.SUCCESS('База данных успешно заполнена.'))
 
@@ -192,22 +186,20 @@ class Command(BaseCommand):
         return stores
 
     # ------------------------------------------------------------------
-    def _seed_products(self, stores: list[Store]) -> None:
+    def _seed_products(self) -> list[Product]:
         self.stdout.write('Создание товаров...')
-        count = 0
-        for store, products in zip(stores, PRODUCTS_BY_STORE):
-            for pname, price in products:
-                Product.objects.get_or_create(
-                    store=store,
-                    name=pname,
-                    defaults={
-                        'price': price,
-                        'stock_qty': random.randint(10, 100),
-                        'description': fake.sentence(nb_words=6),
-                    },
-                )
-                count += 1
-        self.stdout.write(f'  {count} товаров.')
+        result = []
+        for pname, price in PRODUCTS:
+            p, _ = Product.objects.get_or_create(
+                name=pname,
+                defaults={
+                    'price': price,
+                    'description': fake.sentence(nb_words=6),
+                },
+            )
+            result.append(p)
+        self.stdout.write(f'  {len(result)} товаров.')
+        return result
 
     # ------------------------------------------------------------------
     def _seed_customers(self, count: int) -> list[Customer]:
@@ -260,15 +252,13 @@ class Command(BaseCommand):
         return couriers
 
     # ------------------------------------------------------------------
-    def _seed_addresses(
-        self, addr_nodes: list[Node], customers: list[Customer]
-    ) -> list[DeliveryAddress]:
+    def _seed_addresses(self, addr_nodes: list[Node]) -> list[DeliveryAddress]:
         self.stdout.write('Создание адресов доставки...')
         addresses = []
-        for node, customer in zip(addr_nodes, customers * 2):  # ≥1 адрес на покупателя
+        for node in addr_nodes:
             a, _ = DeliveryAddress.objects.get_or_create(
                 node=node,
-                defaults={'customer': customer, 'street_address': node.name},
+                defaults={'street_address': node.name},
             )
             addresses.append(a)
         self.stdout.write(f'  {len(addresses)} адресов.')
@@ -281,6 +271,7 @@ class Command(BaseCommand):
         stores: list[Store],
         addresses: list[DeliveryAddress],
         couriers: list[Courier],
+        products: list[Product],
     ) -> None:
         self.stdout.write('Создание заказов...')
 
@@ -299,12 +290,9 @@ class Command(BaseCommand):
         for status, needs_courier in scenarios:
             customer = random.choice(customers)
             store = random.choice(stores)
-            # адрес должен принадлежать покупателю или берём любой
-            cust_addrs = [a for a in addresses if a.customer == customer]
-            address = random.choice(cust_addrs) if cust_addrs else random.choice(addresses)
+            address = random.choice(addresses)
             courier = random.choice(couriers) if needs_courier else None
 
-            products = list(store.products.all())
             if not products:
                 continue
 
@@ -314,7 +302,7 @@ class Command(BaseCommand):
             order = Order.objects.create(
                 customer=customer,
                 store=store,
-                delivery_address=address,
+                delivery_address=None if status == Order.Status.DRAFT else address,
                 courier=courier,
                 status=status,
                 total_price=total,

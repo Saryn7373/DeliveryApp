@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/products/', include('products.urls')),
     path('api/users/', include('users.urls')),
     path('api/orders/', include('orders.urls')),
+    path('api/cart/', include('orders.cart_urls')),
     
     path('api/auth/register/', RegisterView.as_view()),
     path('api/auth/login/', TokenObtainPairView.as_view()),

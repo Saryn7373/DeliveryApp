@@ -70,6 +70,14 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         fields = ('customer', 'store', 'delivery_address')
 
 
+class CartSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ('id', 'store', 'total_price', 'items', 'created_at')
+
+
 class OrderTransitionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.Status.choices)
 

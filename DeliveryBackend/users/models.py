@@ -45,7 +45,6 @@ class DeliveryAddress(models.Model):
     node = models.OneToOneField(
         'routing.Node', on_delete=models.CASCADE, related_name='delivery_address'
     )
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='addresses')
     street_address = models.CharField(max_length=500)
 
     class Meta:
@@ -53,4 +52,4 @@ class DeliveryAddress(models.Model):
         verbose_name_plural = 'Адреса доставки'
 
     def __str__(self):
-        return f"{self.street_address} ({self.customer})"
+        return self.street_address

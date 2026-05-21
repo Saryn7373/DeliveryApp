@@ -17,15 +17,13 @@ class Store(models.Model):
 
 
 class Product(models.Model):
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    stock_qty = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = 'Товар'
         verbose_name_plural = 'Товары'
 
     def __str__(self):
-        return f"{self.name} ({self.store.name})"
+        return self.name

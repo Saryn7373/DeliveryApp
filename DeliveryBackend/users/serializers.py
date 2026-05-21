@@ -24,7 +24,7 @@ class DeliveryAddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DeliveryAddress
-        fields = ('id', 'street_address', 'node', 'customer')
+        fields = ('id', 'street_address', 'node')
 
 
 class CourierSerializer(serializers.ModelSerializer):
@@ -44,22 +44,17 @@ class CourierUpdateSerializer(serializers.ModelSerializer):
         fields = ('status', 'current_node')
 
 class RegisterSerializer(serializers.ModelSerializer):
+    phone = serializers.CharField(max_length=20, write_only=True)
+
     class Meta:
         model = User
-
-        fields = (
-            'username',
-            'first_name',
-            'last_name',
-            'email',
-            'password',
-        )
-
+        fields = ('username', 'first_name', 'last_name', 'email', 'password', 'phone')
         extra_kwargs = {
-            'password': {
-                'write_only': True,
-            },
+            'password': {'write_only': True},
         }
 
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        phone = validated_data.pop('phone')
+        user = User.objects.create_user(**validated_data)
+        Customer.objects.create(user=user, phone=phone)
+        return user

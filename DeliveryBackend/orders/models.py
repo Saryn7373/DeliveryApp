@@ -13,7 +13,7 @@ class Order(models.Model):
 
     customer         = models.ForeignKey('users.Customer',        on_delete=models.PROTECT, related_name='orders')
     store            = models.ForeignKey('products.Store',        on_delete=models.PROTECT, related_name='orders')
-    delivery_address = models.ForeignKey('users.DeliveryAddress', on_delete=models.PROTECT, related_name='orders')
+    delivery_address = models.ForeignKey('users.DeliveryAddress', on_delete=models.PROTECT, null=True, blank=True, related_name='orders')
     courier          = models.ForeignKey('users.Courier',         on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     status           = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     total_price      = models.DecimalField(max_digits=12, decimal_places=2, default=0)

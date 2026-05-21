@@ -10,6 +10,5 @@ class StoreAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'store', 'price', 'stock_qty')
-    list_filter = ('store',)
+    list_display = ('id', 'name', 'price')
     search_fields = ('name',)

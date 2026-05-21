@@ -31,24 +31,22 @@ class OrderViewSet(mixins.ListModelMixin,
     """
 
     def get_queryset(self):
-        qs = Order.objects.select_related(
-            'customer__user', 'courier__user', 'store', 'delivery_address', 'route'
-        ).prefetch_related('items__product')
+        try:
+            customer = self.request.user.customer_profile
+        except Exception:
+            return Order.objects.none()
 
-        # фильтр по статусу: GET /api/orders/?status=DELIVERY
+        qs = (
+            Order.objects
+            .select_related('customer__user', 'courier__user', 'store', 'delivery_address', 'route')
+            .prefetch_related('items__product')
+            .filter(customer=customer)
+            .exclude(status=Order.Status.DRAFT)
+        )
+
         status_filter = self.request.query_params.get('status')
         if status_filter:
             qs = qs.filter(status=status_filter)
-
-        # фильтр по покупателю: GET /api/orders/?customer={id}
-        customer_id = self.request.query_params.get('customer')
-        if customer_id:
-            qs = qs.filter(customer_id=customer_id)
-
-        # фильтр по курьеру: GET /api/orders/?courier={id}
-        courier_id = self.request.query_params.get('courier')
-        if courier_id:
-            qs = qs.filter(courier_id=courier_id)
 
         return qs
 
