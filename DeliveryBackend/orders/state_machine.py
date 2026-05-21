@@ -1,6 +1,5 @@
 from django.core.exceptions import ValidationError
 
-# Граф допустимых переходов: текущий статус → список разрешённых следующих
 ALLOWED_TRANSITIONS: dict[str, list[str]] = {
     'DRAFT':             ['ASSEMBLING', 'CANCELLED'],
     'ASSEMBLING':        ['COURIER_SELECTION', 'CANCELLED'],
@@ -36,57 +35,16 @@ class OrderStateMachine:
             raise ValidationError("Нельзя подтвердить пустой заказ.")
 
     def _post_transition_hooks(self, target_status: str) -> None:
+        from orders.services import CourierDispatcher, RouteCalculator
+
         if target_status == 'ASSEMBLING':
-            self._compute_and_save_route()
-        if target_status == 'COURIER_SELECTION':
-            self._assign_nearest_courier()
-
-    def _compute_and_save_route(self) -> None:
-        from routing.algorithms import dijkstra
-        from orders.models import Route
-
-        order = self.order
-        from_node_id = order.store.node_id
-        to_node_id   = order.delivery_address.node_id
-
-        try:
-            path, total_weight = dijkstra(from_node_id, to_node_id)
-        except ValueError as exc:
-            raise ValidationError(f"Невозможно построить маршрут для заказа: {exc}") from exc
-
-        Route.objects.update_or_create(
-            order=order,
-            defaults={'path': path, 'total_weight': total_weight},
-        )
-
-    def _assign_nearest_courier(self) -> None:
-        from routing.algorithms import dijkstra
-        from users.models import Courier
-
-        store_node_id = self.order.store.node_id
-        available = list(Courier.objects.filter(status=Courier.Status.AVAILABLE))
-
-        if not available:
-            raise ValidationError("Нет доступных курьеров.")
-
-        best_courier = None
-        best_dist = float('inf')
-
-        for courier in available:
-            if courier.current_node_id is None:
-                continue
             try:
-                _, dist = dijkstra(courier.current_node_id, store_node_id)
-                if dist < best_dist:
-                    best_dist = dist
-                    best_courier = courier
-            except ValueError:
-                continue
+                RouteCalculator().compute(self.order)
+            except ValueError as exc:
+                raise ValidationError(f"Невозможно построить маршрут: {exc}") from exc
 
-        if best_courier is None:
-            best_courier = available[0]
-
-        self.order.courier = best_courier
-        self.order.save(update_fields=['courier', 'updated_at'])
-        best_courier.status = Courier.Status.BUSY
-        best_courier.save(update_fields=['status'])
+        if target_status == 'COURIER_SELECTION':
+            try:
+                CourierDispatcher().assign(self.order)
+            except Exception as exc:
+                raise ValidationError(str(exc)) from exc
