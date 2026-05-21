@@ -1,0 +1,34 @@
+import { useState, useEffect, useCallback } from 'react';
+import { ApiError } from '../patterns/proxy/ApiProxy';
+
+interface FetchState<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+}
+
+export function useFetch<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
+  const [state, setState] = useState<FetchState<T>>({
+    data: null,
+    loading: true,
+    error: null,
+  });
+
+  const load = useCallback(async () => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const data = await fetcher();
+      setState({ data, loading: false, error: null });
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.detail : String(e);
+      setState({ data: null, loading: false, error: msg });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { ...state, reload: load };
+}
