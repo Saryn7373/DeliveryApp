@@ -40,10 +40,10 @@ export const router = createBrowserRouter([
         element: <ProductsPage />,
       },
 
-      {
-        path: 'couriers',
-        element: <CouriersPage />,
-      },
+      // {
+      //   path: 'couriers',
+      //   element: <CouriersPage />,
+      // },
 
       {
         path: 'routing',
