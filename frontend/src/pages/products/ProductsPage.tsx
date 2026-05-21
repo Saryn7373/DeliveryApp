@@ -1,67 +1,48 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { productsApi } from '../../api';
 import { useFetch } from '../../hooks/useFetch';
-import type { Product, Store } from '../../types';
+import type { Store } from '../../types';
+import ProductCard from './components/ProductCard';
 import styles from './ProductsPage.module.css';
 
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
-  const stockClass =
-    product.stock_qty === 0
-      ? styles.outOfStock
-      : product.stock_qty < 10
-      ? styles.lowStock
-      : styles.inStock;
 
-  return (
-    <div className={styles.productCard}>
-      <div className={styles.productTop}>
-        <h3 className={styles.productName}>{product.name}</h3>
-
-        <span className={`${styles.stockBadge} ${stockClass}`}>
-          {product.stock_qty === 0
-            ? 'Нет в наличии'
-            : `Остаток: ${product.stock_qty}`}
-        </span>
-      </div>
-
-      {product.description && (
-        <p className={styles.productDescription}>
-          {product.description}
-        </p>
-      )}
-
-      <div className={styles.productBottom}>
-        <span className={styles.price}>
-          {parseFloat(product.price).toFixed(2)} ₽
-        </span>
-      </div>
-    </div>
-  );
-};
 
 export const ProductsPage: React.FC = () => {
-  const {
-    data: stores,
-    loading,
-    error,
-  } = useFetch<Store[]>(() => productsApi.stores());
+  const { data: stores, loading, error } = useFetch<Store[]>(
+    () => productsApi.stores(),
+  );
 
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
+  const [storeDetail, setStoreDetail] = useState<Store | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const selectedStore = useMemo(() => {
-    if (!stores || selectedStoreId === null) return null;
+  useEffect(() => {
+    if (selectedStoreId === null) return;
 
-    return stores.find((s) => s.id === selectedStoreId) ?? null;
-  }, [stores, selectedStoreId]);
+    let cancelled = false;
+
+    setDetailLoading(true);
+    setDetailError(null);
+    setStoreDetail(null);
+    setSearch('');
+
+    productsApi
+      .store(selectedStoreId)
+      .then((data) => { if (!cancelled) setStoreDetail(data); })
+      .catch((e) => { if (!cancelled) setDetailError(String(e)); })
+      .finally(() => { if (!cancelled) setDetailLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [selectedStoreId]);
 
   const filteredProducts = useMemo(() => {
-    if (!selectedStore?.products) return [];
-
-    return selectedStore.products.filter((p) =>
+    if (!storeDetail?.products) return [];
+    return storeDetail.products.filter((p) =>
       p.name.toLowerCase().includes(search.toLowerCase()),
     );
-  }, [selectedStore, search]);
+  }, [storeDetail, search]);
 
   if (loading) {
     return (
@@ -89,7 +70,6 @@ export const ProductsPage: React.FC = () => {
         {/* SIDEBAR */}
         <aside className={styles.sidebar}>
           <h2 className={styles.sidebarTitle}>Магазины</h2>
-
           <div className={styles.storeList}>
             {stores.map((store) => (
               <button
@@ -100,34 +80,32 @@ export const ProductsPage: React.FC = () => {
                 onClick={() => setSelectedStoreId(store.id)}
               >
                 <div className={styles.storeName}>{store.name}</div>
-
-                <div className={styles.storeAddress}>
-                  {store.address}
-                </div>
+                <div className={styles.storeAddress}>{store.address}</div>
               </button>
             ))}
           </div>
         </aside>
 
-        {/* CONTENT */}
         <section className={styles.content}>
-          {!selectedStore ? (
-            <div className={styles.emptyState}>
-              Выберите магазин
+          {!selectedStoreId ? (
+            <div className={styles.emptyState}>Выберите магазин</div>
+          ) : detailLoading ? (
+            <div className={styles.emptyState}>Загрузка товаров…</div>
+          ) : detailError ? (
+            <div className={styles.emptyState} style={{ color: '#dc2626' }}>
+              {detailError}
             </div>
-          ) : (
+          ) : storeDetail ? (
             <>
               <div className={styles.contentHeader}>
                 <div>
                   <h2 className={styles.selectedStoreTitle}>
-                    {selectedStore.name}
+                    {storeDetail.name}
                   </h2>
-
                   <p className={styles.selectedStoreAddress}>
-                    {selectedStore.address}
+                    {storeDetail.address}
                   </p>
                 </div>
-
                 <input
                   type="text"
                   placeholder="Поиск товара..."
@@ -139,20 +117,17 @@ export const ProductsPage: React.FC = () => {
 
               {filteredProducts.length === 0 ? (
                 <div className={styles.emptyProducts}>
-                  Товары не найдены
+                  {search ? `Ничего не найдено по «${search}»` : 'В этом магазине нет товаров'}
                 </div>
               ) : (
                 <div className={styles.productsGrid}>
                   {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                    />
+                    <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </section>
       </div>
     </div>
