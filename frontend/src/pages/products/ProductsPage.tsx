@@ -9,6 +9,10 @@ type ProductWithStore = Product & {
   storeData: Store;
 };
 
+type StoreDetail = Store & {
+  products?: Product[];
+};
+
 export const ProductsPage: React.FC = () => {
   const {
     data: stores,
@@ -32,18 +36,14 @@ export const ProductsPage: React.FC = () => {
       setProductsLoading(true);
 
       try {
-        const detailedStores = await Promise.all(
-          stores.map((store) => productsApi.store(store.id)),
-        );
+        const allProducts = await productsApi.products();
 
         if (cancelled) return;
 
-        const merged: ProductWithStore[] = detailedStores.flatMap((store) =>
-          store.products.map((product) => ({
-            ...product,
-            storeData: store,
-          })),
-        );
+        const merged: ProductWithStore[] = allProducts.map((product) => ({
+          ...product,
+          storeData: stores[0],
+        }));
 
         setProducts(merged);
       } finally {
@@ -104,57 +104,33 @@ export const ProductsPage: React.FC = () => {
           </h1>
 
           <p className={styles.subtitle}>
-            Выберите магазин и найдите нужный товар
+            Найдите нужный товар
           </p>
         </div>
 
         <input
           className={styles.searchInput}
           type="text"
-          placeholder="Поиск товаров или магазинов..."
+          placeholder="Поиск товаров..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
 
-      <div className={styles.filters}>
-        <button
-          className={`${styles.filterButton} ${
-            selectedStoreId === 'all'
-              ? styles.filterButtonActive
-              : ''
-          }`}
-          onClick={() => setSelectedStoreId('all')}
-        >
-          Все магазины
-        </button>
-
-        {stores.map((store) => (
-          <button
-            key={store.id}
-            className={`${styles.filterButton} ${
-              selectedStoreId === store.id
-                ? styles.filterButtonActive
-                : ''
-            }`}
-            onClick={() => setSelectedStoreId(store.id)}
-          >
-            {store.name}
-          </button>
-        ))}
+      <div className={styles.productsGrid}>
+        {filteredProducts.length === 0 ? (
+          <div className={styles.empty}>
+            Ничего не найдено
+          </div>
+        ) : (
+          filteredProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+            />
+          ))
+        )}
       </div>
-
-      {filteredProducts.length === 0 ? (
-        <div className={styles.empty}>
-          Ничего не найдено
-        </div>
-      ) : (
-        <div className={styles.productsGrid}>
-          {filteredProducts.map((product) => (
-            <ProductCard product={product} />
-          ))}
-        </div>
-      )}
     </div>
   );
 };
