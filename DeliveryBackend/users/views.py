@@ -1,6 +1,8 @@
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.views import APIView
 
 from .models import Courier, Customer, DeliveryAddress
 from .serializers import (
@@ -8,6 +10,7 @@ from .serializers import (
     CourierUpdateSerializer,
     CustomerSerializer,
     DeliveryAddressSerializer,
+    RegisterSerializer,
 )
 
 
@@ -49,3 +52,21 @@ class CourierViewSet(mixins.ListModelMixin,
     def update(self, request, *args, **kwargs):
         kwargs['partial'] = True
         return super().update(request, *args, **kwargs)
+    
+
+class RegisterView(APIView):
+    permission_classes = []
+
+    def post(self, request):
+        serializer = RegisterSerializer(
+            data=request.data,
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_201_CREATED,
+        )

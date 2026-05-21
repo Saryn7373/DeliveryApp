@@ -53,9 +53,12 @@ class ApiProxy {
 
   /** Перехватывает запрос, добавляет заголовки, обрабатывает ошибки */
   private async intercept<T>(url: string, options: RequestInit = {}): Promise<T> {
+    const token = localStorage.getItem('access_token');
+
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      Authorization: token ? `Bearer ${token}` : '',
       ...options.headers,
     };
 
