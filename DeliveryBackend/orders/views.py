@@ -3,10 +3,8 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from users.models import Courier
 from .models import Order, OrderItem
 from .serializers import (
-    OrderAssignCourierSerializer,
     OrderCreateSerializer,
     OrderItemCreateSerializer,
     OrderItemSerializer,
@@ -118,29 +116,6 @@ class OrderViewSet(mixins.ListModelMixin,
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # ------------------------------------------------------------------
-    @action(detail=True, methods=['post'], url_path='assign_courier')
-    def assign_courier(self, request, pk=None):
-        """POST /api/orders/{id}/assign_courier/  body: {courier_id}"""
-        order = self.get_object()
-        serializer = OrderAssignCourierSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        try:
-            courier = Courier.objects.get(pk=serializer.validated_data['courier_id'])
-        except Courier.DoesNotExist:
-            return Response({'detail': 'Курьер не найден.'}, status=status.HTTP_404_NOT_FOUND)
-
-        if courier.status != Courier.Status.AVAILABLE:
-            return Response(
-                {'detail': 'Курьер недоступен.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        order.courier = courier
-        order.save(update_fields=['courier', 'updated_at'])
-
-        return Response(OrderSerializer(order).data)
 
     # ------------------------------------------------------------------
     @action(detail=True, methods=['post'], url_path='transition')

@@ -30,20 +30,19 @@ class OrderStateMachine:
         self._post_transition_hooks(target_status)
 
     def _pre_transition_checks(self, target_status: str) -> None:
-        """Бизнес-правила, которые нельзя выразить только графом переходов."""
         if target_status == 'DELIVERY' and self.order.courier_id is None:
             raise ValidationError("Нельзя начать доставку: курьер не назначен.")
         if target_status == 'ASSEMBLING' and not self.order.items.exists():
             raise ValidationError("Нельзя подтвердить пустой заказ.")
 
     def _post_transition_hooks(self, target_status: str) -> None:
-        """Побочные эффекты после успешного перехода."""
         if target_status == 'ASSEMBLING':
             self._compute_and_save_route()
+        if target_status == 'COURIER_SELECTION':
+            self._assign_nearest_courier()
 
     def _compute_and_save_route(self) -> None:
-        """Строит кратчайший маршрут от магазина до адреса и сохраняет его в Route."""
-        from routing.algorithms import dijkstra  # local import — разрывает циклический импорт
+        from routing.algorithms import dijkstra
         from orders.models import Route
 
         order = self.order
@@ -59,3 +58,35 @@ class OrderStateMachine:
             order=order,
             defaults={'path': path, 'total_weight': total_weight},
         )
+
+    def _assign_nearest_courier(self) -> None:
+        from routing.algorithms import dijkstra
+        from users.models import Courier
+
+        store_node_id = self.order.store.node_id
+        available = list(Courier.objects.filter(status=Courier.Status.AVAILABLE))
+
+        if not available:
+            raise ValidationError("Нет доступных курьеров.")
+
+        best_courier = None
+        best_dist = float('inf')
+
+        for courier in available:
+            if courier.current_node_id is None:
+                continue
+            try:
+                _, dist = dijkstra(courier.current_node_id, store_node_id)
+                if dist < best_dist:
+                    best_dist = dist
+                    best_courier = courier
+            except ValueError:
+                continue
+
+        if best_courier is None:
+            best_courier = available[0]
+
+        self.order.courier = best_courier
+        self.order.save(update_fields=['courier', 'updated_at'])
+        best_courier.status = Courier.Status.BUSY
+        best_courier.save(update_fields=['status'])

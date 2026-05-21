@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'users',
     'orders',
     'rest_framework_simplejwt',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -163,6 +164,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {

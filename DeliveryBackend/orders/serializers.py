@@ -82,5 +82,3 @@ class OrderTransitionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.Status.choices)
 
 
-class OrderAssignCourierSerializer(serializers.Serializer):
-    courier_id = serializers.IntegerField()
