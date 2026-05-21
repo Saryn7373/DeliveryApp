@@ -45,10 +45,10 @@ export const router = createBrowserRouter([
       //   element: <CouriersPage />,
       // },
 
-      {
-        path: 'routing',
-        element: <RoutingPage />,
-      },
+      // {
+      //   path: 'routing',
+      //   element: <RoutingPage />,
+      // },
     ],
   },
 ]);

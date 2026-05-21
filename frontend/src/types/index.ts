@@ -27,8 +27,6 @@ export interface Product {
   name: string;
   description: string;
   price: string;
-  stock_qty: number;
-  store: number;
 }
 
 export interface Store {
@@ -36,7 +34,6 @@ export interface Store {
   name: string;
   address: string;
   node: number;
-  products?: Product[];
 }
 
 // Users
@@ -113,9 +110,9 @@ export interface OrderListItem {
   status: OrderStatus;
   status_display: string;
   customer_name: string;
-  courier: number | null;
+  courier: Courier | null;
   store: number;
-  delivery_address: number;
+  delivery_address: number | null;
   total_price: string;
   created_at: string;
 }

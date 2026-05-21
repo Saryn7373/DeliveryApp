@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { to: '/orders', label: 'Заказы', icon: '📦' },
   { to: '/products', label: 'Каталог товаров', icon: '🏪' },
   // { to: '/couriers', label: 'Курьеры', icon: '🛵' },
-  { to: '/routing', label: 'Маршруты', icon: '🗺️' },
+  // { to: '/routing', label: 'Маршруты', icon: '🗺️' },
 ];
 
 export const Layout: React.FC = () => (
