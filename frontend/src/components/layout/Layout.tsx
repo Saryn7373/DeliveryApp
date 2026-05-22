@@ -5,6 +5,7 @@ import styles from './Layout.module.css';
 const NAV_ITEMS = [
   { to: '/orders', label: 'Заказы', icon: '📦' },
   { to: '/products', label: 'Каталог товаров', icon: '🏪' },
+  { to: '/cart', label: 'Корзина', icon: '🛒' },
   // { to: '/couriers', label: 'Курьеры', icon: '🛵' },
   // { to: '/routing', label: 'Маршруты', icon: '🗺️' },
 ];
