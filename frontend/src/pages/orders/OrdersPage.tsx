@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useFetch } from '../../hooks/useFetch';
 import { ordersApi } from '../../api';
-import type { OrderStatus } from '../../types';
+import type { OrderStatus, OrderListItem } from '../../types';
 import OrderDetail from './components/OrderDetail';
 import styles from './OrdersPage.module.css';
 
@@ -24,7 +24,7 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 };
 
 export const OrdersPage: React.FC = () => {
-  const { data: orders, loading, error } = useFetch(() => ordersApi.list());
+  const { data: orders, loading, error } = useFetch<OrderListItem[]>(() => ordersApi.list());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
 

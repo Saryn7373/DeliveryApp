@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from routing.algorithms import dijkstra
 from routing.models import Node
 from routing.serializers import ShortestPathRequestSerializer, ShortestPathResponseSerializer
-
+from routing.adapter import GeoServiceAdapter
 
 class ShortestPathView(APIView):
     """
@@ -51,3 +51,13 @@ class ShortestPathView(APIView):
             'total_weight': total_weight,
         })
         return Response(resp_serializer.data, status=status.HTTP_200_OK)
+    
+
+
+
+class ResolveAddressView(APIView):
+    def get(self, request):
+        address = request.query_params.get('address', '')
+        adapter = GeoServiceAdapter()
+        lat, lon = adapter.get_coordinates(address)
+        return Response({'address': address, 'lat': lat, 'lon': lon})
