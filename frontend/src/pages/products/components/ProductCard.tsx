@@ -1,25 +1,31 @@
 import { useState } from 'react';
-import { api } from '../../../patterns/proxy/ApiProxy';
+import { cartApi } from '../../../api';
 import type { Product } from '../../../types';
 import styles from '../ProductsPage.module.css';
 
-const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+interface Props {
+  product: Product;
+  storeName: string;
+  cartQuantity: number;
+  onCartChange: () => void;
+}
+
+const ProductCard: React.FC<Props> = ({ product, storeName, cartQuantity, onCartChange }) => {
+  const effectiveStock = Math.max(0, product.stock_qty - cartQuantity);
+  const outOfStock = effectiveStock === 0;
+  const lowStock = effectiveStock > 0 && effectiveStock < 5;
+
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const outOfStock = product.stock_qty === 0;
-  const lowStock = product.stock_qty > 0 && product.stock_qty < 5;
-
   const addToCart = async () => {
-    if (outOfStock) return;
+    if (outOfStock || loading) return;
     try {
       setLoading(true);
-      await api.post('/cart/', {
-        product_id: product.id,
-        quantity: 1,
-      });
+      await cartApi.add(product.id, 1);
+      onCartChange();
       setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
+      setTimeout(() => setAdded(false), 1800);
     } catch (e) {
       console.error(e);
     } finally {
@@ -30,42 +36,32 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   return (
     <div className={styles.productCard}>
       <div className={styles.productTop}>
-        <h3 className={styles.productName}>
-          {product.name}
-        </h3>
+        <h3 className={styles.productName}>{product.name}</h3>
 
         {outOfStock ? (
-          <span className={`${styles.stockBadge} ${styles.outOfStock}`}>
-            Нет в наличии
-          </span>
+          <span className={`${styles.stockBadge} ${styles.outOfStock}`}>Нет в наличии</span>
         ) : lowStock ? (
-          <span className={`${styles.stockBadge} ${styles.lowStock}`}>
-            Осталось {product.stock_qty} шт.
-          </span>
+          <span className={`${styles.stockBadge} ${styles.lowStock}`}>Осталось {effectiveStock} шт.</span>
         ) : (
-          <span className={`${styles.stockBadge} ${styles.inStock}`}>
-            В наличии
-          </span>
+          <span className={`${styles.stockBadge} ${styles.inStock}`}>В наличии</span>
         )}
       </div>
 
+      <p className={styles.storeLabel}>🏪 {storeName}</p>
+
       {product.description && (
-        <p className={styles.productDescription}>
-          {product.description}
-        </p>
+        <p className={styles.productDescription}>{product.description}</p>
       )}
 
       <div className={styles.productBottom}>
-        <span className={styles.price}>
-          {parseFloat(product.price).toFixed(2)} ₽
-        </span>
+        <span className={styles.price}>{parseFloat(product.price).toFixed(2)} ₽</span>
 
         <button
           className={styles.addButton}
           onClick={addToCart}
           disabled={loading || outOfStock}
         >
-          {outOfStock ? 'Недоступно' : loading ? 'Добавление...' : added ? 'Добавлено ✓' : 'В корзину'}
+          {outOfStock ? 'Недоступно' : loading ? '...' : added ? 'Добавлено ✓' : 'В корзину'}
         </button>
       </div>
     </div>

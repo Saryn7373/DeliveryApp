@@ -3,18 +3,8 @@ import { useFetch } from '../../../hooks/useFetch';
 import { ordersApi } from '../../../api';
 import { buildOrderTree } from '../../../patterns/composite/OrderComposite';
 import { DeliveryIterator, iterateLeaves } from '../../../patterns/iterator/DeliveryIterator';
-import AssignCourierBlock from './AssignCourierBlock';
 import type { Order, OrderStatus, RouteNode } from '../../../types';
 import styles from '../OrdersPage.module.css';
-
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  DRAFT: 'Черновик',
-  ASSEMBLING: 'Сборка',
-  COURIER_SELECTION: 'Выбор курьера',
-  DELIVERY: 'Доставка',
-  COMPLETED: 'Выполнен',
-  CANCELLED: 'Отменён',
-};
 
 const STATUS_COLOR: Record<OrderStatus, string> = {
   DRAFT: '#6b7280',
@@ -25,13 +15,17 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
   CANCELLED: '#dc2626',
 };
 
-const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  DRAFT: ['ASSEMBLING', 'CANCELLED'],
-  ASSEMBLING: ['COURIER_SELECTION', 'CANCELLED'],
-  COURIER_SELECTION: ['DELIVERY', 'CANCELLED'],
-  DELIVERY: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
+// Клиент может только отменить заказ (пока он не выполнен/отменён)
+const CAN_CANCEL: OrderStatus[] = ['DRAFT', 'ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY'];
+
+const NODE_TYPE_LABEL: Record<string, string> = {
+  STORE: 'Магазин',
+  ADDRESS: 'Адрес',
+};
+
+const NODE_TYPE_STYLE: Record<string, { background: string; color: string }> = {
+  STORE:   { background: '#dbeafe', color: '#1d4ed8' },
+  ADDRESS: { background: '#dcfce7', color: '#166534' },
 };
 
 const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
@@ -43,8 +37,8 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
     [orderId],
   );
 
-  const [transitioning, setTransitioning] = useState(false);
-  const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   if (loading)
     return (
@@ -67,34 +61,26 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
   const tree = buildOrderTree(order);
   const allNodes = new DeliveryIterator(tree).toArray();
   const leaves = iterateLeaves(tree).toArray();
+  const pathNodes: RouteNode[] = order.route?.path_nodes ?? [];
+  const canCancel = CAN_CANCEL.includes(order.status);
 
-  const handleTransition = async (status: OrderStatus) => {
-    setTransitioning(true);
-    setTransitionError(null);
+  const handleCancel = async () => {
+    setCancelling(true);
+    setCancelError(null);
     try {
-      await ordersApi.transition(orderId, status);
+      await ordersApi.transition(orderId, 'CANCELLED');
       await reload();
     } catch (e: any) {
-      setTransitionError(e?.detail ?? String(e));
+      setCancelError(e?.detail ?? String(e));
     } finally {
-      setTransitioning(false);
+      setCancelling(false);
     }
-  };
-
-  const nextStatuses = TRANSITIONS[order.status];
-
-  // Кнопка DELIVERY доступна только если курьер назначен
-  const canTransitionTo = (s: OrderStatus) => {
-    if (s === 'DELIVERY' && !order.courier) return false;
-    return true;
   };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeBtn} onClick={onClose}>
-          ✕
-        </button>
+        <button className={styles.closeBtn} onClick={onClose}>✕</button>
 
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Заказ #{order.id}</h2>
@@ -121,9 +107,7 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
           </div>
           <div className={styles.treeInfoItem}>
             <span className={styles.treeLabel}>Итого</span>
-            <span className={styles.treeValue}>
-              {tree.getTotalPrice().toFixed(2)} ₽
-            </span>
+            <span className={styles.treeValue}>{tree.getTotalPrice().toFixed(2)} ₽</span>
           </div>
           <div className={styles.treeInfoItem}>
             <span className={styles.treeLabel}>Кол-во товаров</span>
@@ -131,119 +115,29 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
           </div>
         </div>
 
+        {/* Состав заказа */}
         <h3 className={styles.sectionTitle}>Состав заказа</h3>
         <div className={styles.itemsList}>
           {leaves.map((leaf) => (
             <div key={leaf.getId()} className={styles.orderItem}>
               <span className={styles.itemName}>{leaf.getName()}</span>
-              <span className={styles.itemPrice}>
-                {leaf.getTotalPrice().toFixed(2)} ₽
-              </span>
+              <span className={styles.itemPrice}>{leaf.getTotalPrice().toFixed(2)} ₽</span>
             </div>
           ))}
         </div>
 
-        {/* Маршрут доставки */}
-        {order.route?.path_nodes && order.route.path_nodes.length > 0 && (
-          <div className={styles.routeSection}>
-            <h3 className={styles.sectionTitle}>Маршрут доставки</h3>
-            <div>
-              {order.route.path_nodes.map((node: RouteNode, index: number) => (
-                <React.Fragment key={node.id}>
-                  <div className={styles.routeNode}>
-                    <span
-                      className={styles.routeNodeType}
-                      style={{
-                        background:
-                          node.type === 'STORE'
-                            ? '#dbeafe'
-                            : node.type === 'ADDRESS'
-                            ? '#dcfce7'
-                            : '#f3f4f6',
-                        color:
-                          node.type === 'STORE'
-                            ? '#1d4ed8'
-                            : node.type === 'ADDRESS'
-                            ? '#166534'
-                            : '#6b7280',
-                      }}
-                    >
-                      {node.type === 'STORE'
-                        ? 'Магазин'
-                        : node.type === 'ADDRESS'
-                        ? 'Адрес'
-                        : 'Перекрёсток'}
-                    </span>
-                    <span className={styles.routeNodeName}>{node.name}</span>
-                  </div>
-                  {index < order.route!.path_nodes.length - 1 && (
-                    <div className={styles.routeArrow}>↓</div>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <p className={styles.routeWeight}>
-              Общий вес: {order.route.total_weight.toFixed(1)} г
-            </p>
-          </div>
-        )}
-
-        {/* Блок курьера — показываем всегда если назначен */}
-        {/* {order.courier && order.status !== 'COURIER_SELECTION' && (
-          <div className={styles.courierBlock}>
-            <span className={styles.sectionTitle}>Курьер:</span>{' '}
-            {order.courier.user.first_name} {order.courier.user.last_name}
-            <span
-              className={styles.statusBadge}
-              style={{
-                background:
-                  order.courier.status === 'AVAILABLE'
-                    ? '#16a34a22'
-                    : '#dc262622',
-                color:
-                  order.courier.status === 'AVAILABLE' ? '#16a34a' : '#dc2626',
-                marginLeft: 8,
-              }}
-            >
-              {order.courier.status === 'AVAILABLE' ? 'Доступен' : 'Занят'}
-            </span>
-          </div>
-        )} */}
-
-        {/* Назначение курьера — только в статусе COURIER_SELECTION */}
-        {/* {order.status === 'COURIER_SELECTION' && (
-          <AssignCourierBlock
-            orderId={order.id}
-            currentCourier={order.courier}
-            onAssigned={reload}
-          />
-        )} */}
-
-        {/* Переходы статусов */}
-        {nextStatuses.length > 0 && (
+        {/* Только кнопка отмены */}
+        {canCancel && (
           <div className={styles.transitions}>
-            <p className={styles.sectionTitle}>Перевести в статус:</p>
-            <div className={styles.transitionBtns}>
-              {nextStatuses.map((s) => (
-                <button
-                  key={s}
-                  className={styles.transitionBtn}
-                  style={{ borderColor: STATUS_COLOR[s], color: STATUS_COLOR[s] }}
-                  onClick={() => handleTransition(s)}
-                  disabled={transitioning || !canTransitionTo(s)}
-                  title={
-                    s === 'DELIVERY' && !order.courier
-                      ? 'Сначала назначьте курьера'
-                      : undefined
-                  }
-                >
-                  {STATUS_LABELS[s]}
-                  {s === 'DELIVERY' && !order.courier ? ' 🔒' : ''}
-                </button>
-              ))}
-            </div>
-            {transitionError && (
-              <p className={styles.transitionError}>{transitionError}</p>
+            <button
+              className={styles.cancelBtn}
+              onClick={handleCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? 'Отмена...' : 'Отменить заказ'}
+            </button>
+            {cancelError && (
+              <p className={styles.transitionError}>{cancelError}</p>
             )}
           </div>
         )}
@@ -252,5 +146,4 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
   );
 };
 
-
-export default OrderDetail
+export default OrderDetail;

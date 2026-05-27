@@ -127,6 +127,30 @@ export interface OrderListItem {
   created_at: string;
 }
 
+// Cart
+export interface CartItemProduct {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock_qty: number;
+  store: number;
+}
+
+export interface CartItem {
+  id: number;
+  product: CartItemProduct;
+  quantity: number;
+  price_at_order: string;
+}
+
+export interface Cart {
+  id: number | null;
+  store: number | null;
+  total_price: string;
+  items: CartItem[];
+}
+
 export interface LoginRequest {
   username: string;
   password: string;

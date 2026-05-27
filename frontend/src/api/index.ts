@@ -9,6 +9,7 @@ import type {
   Store,
   Product,
   ShortestPathResponse,
+  Cart,
 } from '../types';
 
 // ─── Orders 
@@ -55,7 +56,19 @@ export const usersApi = {
     api.patch<Courier>(`/users/couriers/${id}/`, data),
 };
 
-// ─── Routing 
+// ─── Cart
+export const cartApi = {
+  get: () => api.get<Cart>('/cart/'),
+  add: (productId: number, quantity: number) =>
+    api.post<Cart>('/cart/', { product_id: productId, quantity }),
+  updateItem: (itemId: number, quantity: number) =>
+    api.patch<Cart>(`/cart/items/${itemId}/`, { quantity }),
+  removeItem: (itemId: number) => api.delete(`/cart/items/${itemId}/`),
+  checkout: (addressId: number) =>
+    api.post('/cart/checkout/', { delivery_address_id: addressId }),
+};
+
+// ─── Routing
 export const routingApi = {
   shortestPath: (fromNode: number, toNode: number) =>
     api.post<ShortestPathResponse>('/routing/shortest-path/', {
