@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { cartApi, productsApi, usersApi } from '../../api';
+import { cartApi, ordersApi, productsApi, usersApi } from '../../api';
 import { useFetch } from '../../hooks/useFetch';
 import type { Cart, DeliveryAddress, Store } from '../../types';
 import styles from './CartPage.module.css';
@@ -84,8 +84,9 @@ export const CartPage: React.FC = () => {
     try {
       setCheckoutError(null);
       setCheckoutLoading(true);
-      await cartApi.checkout(selectedAddress as number);
-      navigate('/orders');
+      const order = await cartApi.checkout(selectedAddress as number);
+      ordersApi.demoProgress(order.id).catch(console.error);
+      navigate('/orders', { state: { newOrderId: order.id } });
     } catch (e: any) {
       setCheckoutError(e?.detail ?? e?.message ?? 'Ошибка при оформлении заказа');
     } finally {

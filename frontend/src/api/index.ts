@@ -33,6 +33,9 @@ export const ordersApi = {
 
   transition: (orderId: number, status: string) =>
     api.post<Order>(`/orders/${orderId}/transition/`, { status }),
+
+  demoProgress: (orderId: number) =>
+    api.post<{ detail: string }>(`/orders/${orderId}/demo_progress/`),
 };
 
 // ─── Products 
@@ -65,7 +68,7 @@ export const cartApi = {
     api.patch<Cart>(`/cart/items/${itemId}/`, { quantity }),
   removeItem: (itemId: number) => api.delete(`/cart/items/${itemId}/`),
   checkout: (addressId: number) =>
-    api.post('/cart/checkout/', { delivery_address_id: addressId }),
+    api.post<Order>('/cart/checkout/', { delivery_address_id: addressId }),
 };
 
 // ─── Routing

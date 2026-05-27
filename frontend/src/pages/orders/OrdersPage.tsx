@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useFetch } from '../../hooks/useFetch';
 import { ordersApi } from '../../api';
 import type { OrderStatus, OrderListItem } from '../../types';
@@ -24,8 +25,13 @@ const STATUS_COLOR: Record<OrderStatus, string> = {
 };
 
 export const OrdersPage: React.FC = () => {
-  const { data: orders, loading, error } = useFetch<OrderListItem[]>(() => ordersApi.list());
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const location = useLocation();
+  const newOrderId = (location.state as { newOrderId?: number } | null)?.newOrderId ?? null;
+
+  const { data: orders, loading, error, reload: reloadOrders } = useFetch<OrderListItem[]>(
+    () => ordersApi.list(),
+  );
+  const [selectedId, setSelectedId] = useState<number | null>(newOrderId);
   const [statusFilter, setStatusFilter] = useState<string>('');
 
   const filtered = orders
@@ -84,6 +90,8 @@ export const OrdersPage: React.FC = () => {
       {selectedId && (
         <OrderDetail
           orderId={selectedId}
+          autoPolling={selectedId === newOrderId}
+          onStatusChange={reloadOrders}
           onClose={() => setSelectedId(null)}
         />
       )}
