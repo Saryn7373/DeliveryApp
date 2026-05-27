@@ -144,7 +144,7 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
         </div>
 
         {/* Блок курьера — показываем всегда если назначен */}
-        {order.courier && order.status !== 'COURIER_SELECTION' && (
+        {/* {order.courier && order.status !== 'COURIER_SELECTION' && (
           <div className={styles.courierBlock}>
             <span className={styles.sectionTitle}>Курьер:</span>{' '}
             {order.courier.user.first_name} {order.courier.user.last_name}
@@ -163,16 +163,16 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
               {order.courier.status === 'AVAILABLE' ? 'Доступен' : 'Занят'}
             </span>
           </div>
-        )}
+        )} */}
 
         {/* Назначение курьера — только в статусе COURIER_SELECTION */}
-        {order.status === 'COURIER_SELECTION' && (
+        {/* {order.status === 'COURIER_SELECTION' && (
           <AssignCourierBlock
             orderId={order.id}
             currentCourier={order.courier}
             onAssigned={reload}
           />
-        )}
+        )} */}
 
         {/* Переходы статусов */}
         {nextStatuses.length > 0 && (

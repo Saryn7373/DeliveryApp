@@ -1,0 +1,252 @@
+
+.page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #f5f7fb;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.title {
+  margin: 0;
+  font-size: 36px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.subtitle {
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+}
+
+.cardContent {
+  flex: 1;
+
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.productName {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.description {
+  margin-top: 10px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+
+.quantity {
+  color: #374151;
+  font-size: 15px;
+}
+
+.price {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.removeButton {
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+
+  background: #fee2e2;
+  color: #dc2626;
+
+  cursor: pointer;
+
+  font-weight: 600;
+}
+
+.summary {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+
+  position: sticky;
+  top: 24px;
+}
+
+.summaryTitle {
+  margin: 0 0 24px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.summaryRow,
+.summaryRowTotal {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  color: #374151;
+}
+
+.summaryRowTotal {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+
+  font-size: 22px;
+  font-weight: 700;
+
+  color: #111827;
+}
+
+.checkoutButton {
+  width: 100%;
+
+  margin-top: 24px;
+
+  border: none;
+  border-radius: 14px;
+
+  padding: 16px;
+
+  background: #2563eb;
+  color: white;
+
+  font-size: 16px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.empty {
+  background: white;
+  border-radius: 24px;
+  padding: 80px 32px;
+
+  text-align: center;
+
+  box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.emptyText {
+  margin-top: 12px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+.catalogButton {
+  display: inline-flex;
+  margin-top: 24px;
+
+  padding: 14px 22px;
+
+  border-radius: 14px;
+
+  background: #2563eb;
+  color: white;
+
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.centerMessage,
+.error {
+  padding: 80px;
+  text-align: center;
+}
+
+.error {
+  color: #dc2626;
+}
+
+@media (max-width: 1000px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .summary {
+    position: static;
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 20px;
+  }
+
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cardContent {
+    flex-direction: column;
+  }
+
+  .meta {
+    align-items: flex-start;
+  }
+}
+.addressSelect {
+  width: 100%;
+
+  padding: 14px;
+
+  border-radius: 12px;
+
+  border: 1px solid #d1d5db;
+
+  margin-top: 20px;
+  margin-bottom: 16px;
+
+  font-size: 14px;
+
+  background: white;
+}
+
+
+
+

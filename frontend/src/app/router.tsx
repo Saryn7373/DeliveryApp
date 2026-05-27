@@ -4,6 +4,7 @@ import { Layout } from '../components/layout/Layout';
 
 import { OrdersPage } from '../pages/orders/OrdersPage';
 import { ProductsPage } from '../pages/products/ProductsPage';
+import { CartPage } from '../pages/cart/CartPage';
 import { CouriersPage } from '../pages/couriers/CouriersPage';
 import { RoutingPage } from '../pages/routing/RoutingPage';
 
@@ -38,6 +39,11 @@ export const router = createBrowserRouter([
       {
         path: 'products',
         element: <ProductsPage />,
+      },
+
+      {
+        path: 'cart',
+        element: <CartPage />,
       },
 
       // {
