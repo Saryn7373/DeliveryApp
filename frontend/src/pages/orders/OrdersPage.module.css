@@ -369,3 +369,44 @@
   color: #dc2626;
   margin-top: 8px;
 }
+
+/* ── Route ── */
+.routeSection {
+  margin-bottom: 20px;
+}
+
+.routeNode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.routeNodeType {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.routeNodeName {
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.routeArrow {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  padding: 2px 20px;
+}
+
+.routeWeight {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}

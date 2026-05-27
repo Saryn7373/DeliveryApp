@@ -7,16 +7,19 @@ import { usersApi } from "../../api";
 import type { DeliveryAddress } from "../../types";
 import styles from "./CartPage.module.css";
 
+interface CartItemProduct {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock_qty: number;
+}
+
 interface CartItem {
   id: number;
   quantity: number;
   price_at_order: string;
-  product: {
-    id: number;
-    name: string;
-    description: string;
-    price: string;
-  };
+  product: CartItemProduct;
 }
 
 interface Cart {
@@ -32,23 +35,17 @@ export const CartPage: React.FC = () => {
     error,
     reload,
   } = useFetch<Cart>(() => api.get("/cart/"));
-    const navigate = useNavigate()
+  const navigate = useNavigate();
   const [addresses, setAddresses] = useState<DeliveryAddress[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number | "">("");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   React.useEffect(() => {
     const loadAddresses = async () => {
       try {
-        const customers = await usersApi.customers();
-
-        if (!customers.length) return;
-
-        const customer = customers[0];
-
-        const data = await usersApi.customerAddresses(customer.id);
-
+        const data = await usersApi.addresses();
         setAddresses(data);
-
         if (data.length > 0) {
           setSelectedAddress(data[0].id);
         }
@@ -59,6 +56,7 @@ export const CartPage: React.FC = () => {
 
     loadAddresses();
   }, []);
+
   const removeItem = async (itemId: number) => {
     try {
       await api.delete(`/cart/items/${itemId}/`);
@@ -67,17 +65,27 @@ export const CartPage: React.FC = () => {
       console.error(e);
     }
   };
+
   const checkout = async () => {
-    try {
-        await api.post('/cart/checkout/', {
-        delivery_address_id: 1,
-        });
-        navigate('/orders')
-        reload();
-    } catch (e) {
-        console.error(e);
+    if (!selectedAddress) {
+      setCheckoutError("Выберите адрес доставки");
+      return;
     }
-    };
+    try {
+      setCheckoutError(null);
+      setCheckoutLoading(true);
+      await api.post("/cart/checkout/", {
+        delivery_address_id: selectedAddress,
+      });
+      navigate("/orders");
+    } catch (e: any) {
+      const message =
+        e?.detail ?? e?.message ?? "Ошибка при оформлении заказа";
+      setCheckoutError(message);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -165,19 +173,39 @@ export const CartPage: React.FC = () => {
               <span>Сумма</span>
               <span>{parseFloat(cart.total_price).toFixed(2)} ₽</span>
             </div>
-            {/* <select
-              className={styles.addressSelect}
-              value={selectedAddress}
-              onChange={(e) => setSelectedAddress(Number(e.target.value))}
+
+            {addresses.length > 0 && (
+              <select
+                className={styles.addressSelect}
+                value={selectedAddress}
+                onChange={(e) => setSelectedAddress(Number(e.target.value))}
+              >
+                {addresses.map((address) => (
+                  <option key={address.id} value={address.id}>
+                    {address.street_address}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {addresses.length === 0 && (
+              <p style={{ marginTop: 16, fontSize: 14, color: "#dc2626" }}>
+                Нет сохранённых адресов доставки
+              </p>
+            )}
+
+            {checkoutError && (
+              <p style={{ marginTop: 12, fontSize: 14, color: "#dc2626", background: "#fee2e2", padding: "10px 14px", borderRadius: 8 }}>
+                {checkoutError}
+              </p>
+            )}
+
+            <button
+              className={styles.checkoutButton}
+              onClick={checkout}
+              disabled={checkoutLoading || addresses.length === 0}
             >
-              {addresses.map((address) => (
-                <option key={address.id} value={address.id}>
-                  {address.street_address}
-                </option>
-              ))}
-            </select> */}
-            <button className={styles.checkoutButton} onClick={checkout}>
-              Оформить заказ
+              {checkoutLoading ? "Оформляем..." : "Оформить заказ"}
             </button>
           </aside>
         </div>

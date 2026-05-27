@@ -9,10 +9,6 @@ type ProductWithStore = Product & {
   storeData: Store;
 };
 
-type StoreDetail = Store & {
-  products?: Product[];
-};
-
 export const ProductsPage: React.FC = () => {
   const {
     data: stores,
@@ -42,7 +38,7 @@ export const ProductsPage: React.FC = () => {
 
         const merged: ProductWithStore[] = allProducts.map((product) => ({
           ...product,
-          storeData: stores[0],
+          storeData: stores.find((s) => s.id === product.store) ?? stores[0],
         }));
 
         setProducts(merged);
@@ -65,7 +61,7 @@ export const ProductsPage: React.FC = () => {
       const matchesStore =
         selectedStoreId === 'all'
           ? true
-          : product.storeData.id === selectedStoreId;
+          : product.store === selectedStoreId;
 
       const matchesSearch =
         product.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -115,6 +111,24 @@ export const ProductsPage: React.FC = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+      </div>
+
+      <div className={styles.filters}>
+        <button
+          className={`${styles.filterButton} ${selectedStoreId === 'all' ? styles.filterButtonActive : ''}`}
+          onClick={() => setSelectedStoreId('all')}
+        >
+          Все магазины
+        </button>
+        {stores.map((store) => (
+          <button
+            key={store.id}
+            className={`${styles.filterButton} ${selectedStoreId === store.id ? styles.filterButtonActive : ''}`}
+            onClick={() => setSelectedStoreId(store.id)}
+          >
+            {store.name}
+          </button>
+        ))}
       </div>
 
       <div className={styles.productsGrid}>

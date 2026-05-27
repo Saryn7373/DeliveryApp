@@ -4,7 +4,7 @@ import { ordersApi } from '../../../api';
 import { buildOrderTree } from '../../../patterns/composite/OrderComposite';
 import { DeliveryIterator, iterateLeaves } from '../../../patterns/iterator/DeliveryIterator';
 import AssignCourierBlock from './AssignCourierBlock';
-import type { Order, OrderStatus } from '../../../types';
+import type { Order, OrderStatus, RouteNode } from '../../../types';
 import styles from '../OrdersPage.module.css';
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -142,6 +142,51 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
             </div>
           ))}
         </div>
+
+        {/* Маршрут доставки */}
+        {order.route?.path_nodes && order.route.path_nodes.length > 0 && (
+          <div className={styles.routeSection}>
+            <h3 className={styles.sectionTitle}>Маршрут доставки</h3>
+            <div>
+              {order.route.path_nodes.map((node: RouteNode, index: number) => (
+                <React.Fragment key={node.id}>
+                  <div className={styles.routeNode}>
+                    <span
+                      className={styles.routeNodeType}
+                      style={{
+                        background:
+                          node.type === 'STORE'
+                            ? '#dbeafe'
+                            : node.type === 'ADDRESS'
+                            ? '#dcfce7'
+                            : '#f3f4f6',
+                        color:
+                          node.type === 'STORE'
+                            ? '#1d4ed8'
+                            : node.type === 'ADDRESS'
+                            ? '#166534'
+                            : '#6b7280',
+                      }}
+                    >
+                      {node.type === 'STORE'
+                        ? 'Магазин'
+                        : node.type === 'ADDRESS'
+                        ? 'Адрес'
+                        : 'Перекрёсток'}
+                    </span>
+                    <span className={styles.routeNodeName}>{node.name}</span>
+                  </div>
+                  {index < order.route!.path_nodes.length - 1 && (
+                    <div className={styles.routeArrow}>↓</div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <p className={styles.routeWeight}>
+              Общий вес: {order.route.total_weight.toFixed(1)} г
+            </p>
+          </div>
+        )}
 
         {/* Блок курьера — показываем всегда если назначен */}
         {/* {order.courier && order.status !== 'COURIER_SELECTION' && (

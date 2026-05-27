@@ -43,12 +43,11 @@ export const productsApi = {
   product: (id: number) => api.get<Product>(`/products/products/${id}/`),
 };
 
-// ─── Users 
+// ─── Users
 export const usersApi = {
   customers: () => api.get<Customer[]>('/users/customers/'),
   customer: (id: number) => api.get<Customer>(`/users/customers/${id}/`),
-  customerAddresses: (id: number) =>
-    api.get<DeliveryAddress[]>(`/users/customers/${id}/addresses/`),
+  addresses: () => api.get<DeliveryAddress[]>('/users/addresses/'),
 
   couriers: () => api.get<Courier[]>('/users/couriers/'),
   courier: (id: number) => api.get<Courier>(`/users/couriers/${id}/`),
