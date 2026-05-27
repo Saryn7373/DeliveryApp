@@ -5,18 +5,79 @@ import { DeliveryIterator, iterateLeaves } from '../../../patterns/iterator/Deli
 import type { Order, OrderStatus } from '../../../types';
 import styles from '../OrdersPage.module.css';
 
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  DRAFT: '#6b7280',
-  ASSEMBLING: '#d97706',
-  COURIER_SELECTION: '#7c3aed',
-  DELIVERY: '#2563eb',
-  COMPLETED: '#16a34a',
-  CANCELLED: '#dc2626',
+// ── Step definitions ────────────────────────────────────────────────────────
+
+const STEPS: Array<{ key: OrderStatus; label: string; color: string }> = [
+  { key: 'ASSEMBLING',        label: 'Сборка',   color: '#d97706' },
+  { key: 'COURIER_SELECTION', label: 'Курьер',   color: '#7c3aed' },
+  { key: 'DELIVERY',          label: 'Доставка', color: '#2563eb' },
+  { key: 'COMPLETED',         label: 'Доставлен',color: '#16a34a' },
+];
+
+const TERMINAL: OrderStatus[] = ['COMPLETED', 'CANCELLED'];
+const CAN_CANCEL: OrderStatus[] = ['DRAFT', 'ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY'];
+const POLL_MS = 3000;
+
+// ── Progress Stepper ────────────────────────────────────────────────────────
+
+const OrderStepper: React.FC<{ status: OrderStatus; polling: boolean }> = ({
+  status,
+  polling,
+}) => {
+  const stepIdx = STEPS.findIndex((s) => s.key === status);
+
+  return (
+    <div className={styles.stepper}>
+      {STEPS.map((step, i) => {
+        const isCompleted = i < stepIdx;
+        const isActive = i === stepIdx;
+        const isUpcoming = i > stepIdx;
+
+        return (
+          <React.Fragment key={step.key}>
+            <div className={styles.stepItem}>
+              <div
+                className={[
+                  styles.stepCircle,
+                  isCompleted ? styles.stepCircleCompleted : '',
+                  isActive    ? styles.stepCircleActive    : '',
+                  isUpcoming  ? styles.stepCircleUpcoming  : '',
+                ].filter(Boolean).join(' ')}
+                style={
+                  isActive
+                    ? ({ '--step-color': step.color, borderColor: step.color, color: step.color } as React.CSSProperties)
+                    : undefined
+                }
+              >
+                {isCompleted ? '✓' : i + 1}
+              </div>
+              <span className={styles.stepLabel}>{step.label}</span>
+              {isActive && polling && (
+                <span className={styles.stepSubLabel}>в процессе…</span>
+              )}
+              {isActive && !polling && status !== 'COMPLETED' && (
+                <span className={styles.stepSubLabel}>{step.label}</span>
+              )}
+            </div>
+
+            {i < STEPS.length - 1 && (
+              <div className={styles.stepConnectorWrap}>
+                <div
+                  className={[
+                    styles.stepConnector,
+                    i < stepIdx ? styles.stepConnectorFilled : '',
+                  ].filter(Boolean).join(' ')}
+                />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
 
-const CAN_CANCEL: OrderStatus[] = ['DRAFT', 'ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY'];
-const TERMINAL: OrderStatus[] = ['COMPLETED', 'CANCELLED'];
-const POLL_INTERVAL_MS = 3000;
+// ── Main component ──────────────────────────────────────────────────────────
 
 interface Props {
   orderId: number;
@@ -33,7 +94,7 @@ const OrderDetail: React.FC<Props> = ({
 }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
@@ -45,9 +106,9 @@ const OrderDetail: React.FC<Props> = ({
       try {
         const data = await ordersApi.get(orderId);
         setOrder(data);
-        setError(null);
+        setFetchError(null);
       } catch (e: any) {
-        if (!silent) setError(e?.detail ?? String(e));
+        if (!silent) setFetchError(e?.detail ?? String(e));
       } finally {
         if (!silent) setLoading(false);
       }
@@ -55,12 +116,9 @@ const OrderDetail: React.FC<Props> = ({
     [orderId],
   );
 
-  // Initial load
-  useEffect(() => {
-    fetchOrder();
-  }, [fetchOrder]);
+  useEffect(() => { fetchOrder(); }, [fetchOrder]);
 
-  // Notify parent when status changes
+  // Notify parent on status change
   useEffect(() => {
     if (!order) return;
     if (prevStatusRef.current !== null && prevStatusRef.current !== order.status) {
@@ -69,12 +127,11 @@ const OrderDetail: React.FC<Props> = ({
     prevStatusRef.current = order.status;
   }, [order?.status]);
 
-  // Polling — silent fetches, stops on terminal status
+  // Silent polling — stops at terminal status
   useEffect(() => {
     if (!autoPolling || !order) return;
     if (TERMINAL.includes(order.status)) return;
-
-    const timer = setInterval(() => fetchOrder(true), POLL_INTERVAL_MS);
+    const timer = setInterval(() => fetchOrder(true), POLL_MS);
     return () => clearInterval(timer);
   }, [autoPolling, order?.status, fetchOrder]);
 
@@ -91,6 +148,8 @@ const OrderDetail: React.FC<Props> = ({
     }
   };
 
+  // ── Render ──
+
   if (loading)
     return (
       <div className={styles.modalOverlay}>
@@ -100,11 +159,11 @@ const OrderDetail: React.FC<Props> = ({
       </div>
     );
 
-  if (error || !order)
+  if (fetchError || !order)
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
-          <p className={styles.error}>{error}</p>
+          <p className={styles.error}>{fetchError}</p>
         </div>
       </div>
     );
@@ -113,8 +172,8 @@ const OrderDetail: React.FC<Props> = ({
   const allNodes = new DeliveryIterator(tree).toArray();
   const leaves = iterateLeaves(tree).toArray();
   const canCancel = CAN_CANCEL.includes(order.status);
-  const isLive = autoPolling && !TERMINAL.includes(order.status);
-  const isCompleted = order.status === 'COMPLETED';
+  const isCancelled = order.status === 'CANCELLED';
+  const isLivePolling = autoPolling && !TERMINAL.includes(order.status);
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
@@ -123,28 +182,19 @@ const OrderDetail: React.FC<Props> = ({
 
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Заказ #{order.id}</h2>
-          <span
-            className={styles.statusBadge}
-            style={{
-              background: STATUS_COLOR[order.status] + '22',
-              color: STATUS_COLOR[order.status],
-            }}
-          >
-            {order.status_display}
-          </span>
+          {isLivePolling && (
+            <span className={styles.livePill}>
+              <span className={styles.liveDot} />
+              Live
+            </span>
+          )}
         </div>
 
-        {isLive && (
-          <div className={styles.liveIndicator}>
-            <span className={styles.liveDot} />
-            Отслеживается в реальном времени
-          </div>
-        )}
-
-        {isCompleted && (
-          <div className={styles.completedBanner}>
-            Заказ успешно доставлен!
-          </div>
+        {/* Progress stepper */}
+        {!isCancelled ? (
+          <OrderStepper status={order.status} polling={isLivePolling} />
+        ) : (
+          <div className={styles.cancelledBanner}>Заказ отменён</div>
         )}
 
         {/* Composite tree info */}
