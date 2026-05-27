@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+from orders.observers import OrderStatusLogger, CourierStatusObserver
 
 ALLOWED_TRANSITIONS: dict[str, list[str]] = {
     'DRAFT':             ['ASSEMBLING', 'CANCELLED'],
@@ -9,8 +10,6 @@ ALLOWED_TRANSITIONS: dict[str, list[str]] = {
     'CANCELLED':         [],
 }
 
-
-# ─── Шаблонный метод: базовый переход ────────────────────────────────────────
 
 class BaseTransition:
     """Шаблонный метод: скелет перехода между состояниями заказа."""
@@ -24,15 +23,11 @@ class BaseTransition:
         self.post_hook(order)
 
     def pre_check(self, order) -> None:
-        """Валидация перед переходом. Подклассы переопределяют при необходимости."""
         pass
 
     def post_hook(self, order) -> None:
-        """Побочные эффекты после перехода. Подклассы переопределяют при необходимости."""
         pass
 
-
-# ─── Конкретные переходы ─────────────────────────────────────────────────────
 
 class ToAssemblingTransition(BaseTransition):
     target_status = 'ASSEMBLING'
@@ -43,6 +38,7 @@ class ToAssemblingTransition(BaseTransition):
 
     def post_hook(self, order) -> None:
         from orders.services import RouteCalculator
+        _deduct_stock(order)
         try:
             RouteCalculator().compute(order)
         except ValueError as exc:
@@ -79,8 +75,6 @@ class ToCancelledTransition(BaseTransition):
     target_status = 'CANCELLED'
 
 
-# ─── Реестр переходов ─────────────────────────────────────────────────────────
-
 TRANSITIONS: dict[str, BaseTransition] = {
     'ASSEMBLING':        ToAssemblingTransition(),
     'COURIER_SELECTION': ToCourierSelectionTransition(),
@@ -90,11 +84,27 @@ TRANSITIONS: dict[str, BaseTransition] = {
 }
 
 
-# ─── Машина состояний ─────────────────────────────────────────────────────────
+def _deduct_stock(order) -> None:
+    """Проверяет наличие и списывает товары со склада."""
+    from django.db.models import F
+    items = list(order.items.select_related('product').all())
+
+    for item in items:
+        if item.product.stock_qty < item.quantity:
+            raise ValidationError(
+                f"Недостаточно товара '{item.product.name}' на складе. "
+                f"Доступно: {item.product.stock_qty}, запрошено: {item.quantity}."
+            )
+
+    for item in items:
+        item.product.stock_qty = F('stock_qty') - item.quantity
+        item.product.save(update_fields=['stock_qty'])
+
 
 class OrderStateMachine:
     def __init__(self, order):
         self.order = order
+        self._observers = [OrderStatusLogger(), CourierStatusObserver()]
 
     def can_transition(self, target_status: str) -> bool:
         return target_status in ALLOWED_TRANSITIONS.get(self.order.status, [])
@@ -106,3 +116,5 @@ class OrderStateMachine:
                 f"Разрешено: {ALLOWED_TRANSITIONS.get(self.order.status, [])}"
             )
         TRANSITIONS[target_status].execute(self.order)
+        for obs in self._observers:
+            obs.update(target_status, self.order)

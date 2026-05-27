@@ -47,19 +47,12 @@ def _recalc_total(cart):
 
 
 class CartView(APIView):
-    """
-    GET  /api/cart/  — содержимое корзины
-    POST /api/cart/  — добавить товар {product_id, quantity}
-    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         customer = _get_customer(request)
         if customer is None:
-            return Response(
-                {'detail': 'Профиль покупателя не найден.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return Response({'detail': 'Профиль покупателя не найден.'}, status=status.HTTP_403_FORBIDDEN)
         cart = _get_cart(customer)
         if cart is None:
             return Response({'id': None, 'items': [], 'total_price': '0.00'})
@@ -68,10 +61,7 @@ class CartView(APIView):
     def post(self, request):
         customer = _get_customer(request)
         if customer is None:
-            return Response(
-                {'detail': 'Профиль покупателя не найден.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return Response({'detail': 'Профиль покупателя не найден.'}, status=status.HTTP_403_FORBIDDEN)
 
         product_id = request.data.get('product_id')
         try:
@@ -80,10 +70,7 @@ class CartView(APIView):
             quantity = 1
 
         if quantity < 1:
-            return Response(
-                {'detail': 'Количество должно быть больше 0.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'detail': 'Количество должно быть больше 0.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             product = Product.objects.get(pk=product_id)
@@ -110,18 +97,12 @@ class CartView(APIView):
 
 
 class CartItemView(APIView):
-    """
-    DELETE /api/cart/items/{item_id}/ — удалить позицию из корзины
-    """
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, item_id):
         customer = _get_customer(request)
         if customer is None:
-            return Response(
-                {'detail': 'Профиль покупателя не найден.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return Response({'detail': 'Профиль покупателя не найден.'}, status=status.HTTP_403_FORBIDDEN)
 
         cart = Order.objects.filter(customer=customer, status=Order.Status.DRAFT).first()
         if cart is None:
@@ -138,19 +119,12 @@ class CartItemView(APIView):
 
 
 class CartCheckoutView(APIView):
-    """
-    POST /api/cart/checkout/  — оформить заказ {delivery_address_id}
-    Переводит DRAFT → ASSEMBLING, фиксирует адрес доставки.
-    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         customer = _get_customer(request)
         if customer is None:
-            return Response(
-                {'detail': 'Профиль покупателя не найден.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            return Response({'detail': 'Профиль покупателя не найден.'}, status=status.HTTP_403_FORBIDDEN)
 
         cart = (
             Order.objects
@@ -162,17 +136,11 @@ class CartCheckoutView(APIView):
             return Response({'detail': 'Корзина пуста.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not cart.items.exists():
-            return Response(
-                {'detail': 'Добавьте товары перед оформлением.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'detail': 'Добавьте товары перед оформлением.'}, status=status.HTTP_400_BAD_REQUEST)
 
         address_id = request.data.get('delivery_address_id')
         if not address_id:
-            return Response(
-                {'detail': 'Укажите адрес доставки.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({'detail': 'Укажите адрес доставки.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             address = DeliveryAddress.objects.get(pk=address_id)

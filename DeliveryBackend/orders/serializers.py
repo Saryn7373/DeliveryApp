@@ -1,15 +1,28 @@
 from rest_framework import serializers
 
+from routing.models import Node
 from products.serializers import ProductSerializer
-from routing.serializers import NodeBriefSerializer
 from users.serializers import CourierSerializer, CustomerSerializer
 from .models import Order, OrderItem, Route
 
 
+class RouteNodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Node
+        fields = ('id', 'name', 'type', 'latitude', 'longitude')
+
+
 class RouteSerializer(serializers.ModelSerializer):
+    path_nodes = serializers.SerializerMethodField()
+
     class Meta:
         model = Route
-        fields = ('path', 'total_weight', 'computed_at')
+        fields = ('path', 'path_nodes', 'total_weight', 'computed_at')
+
+    def get_path_nodes(self, obj):
+        node_map = {n.pk: n for n in Node.objects.filter(pk__in=obj.path)}
+        ordered = [node_map[nid] for nid in obj.path if nid in node_map]
+        return RouteNodeSerializer(ordered, many=True).data
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -52,7 +65,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class OrderListSerializer(serializers.ModelSerializer):
-    """Облегчённый сериализатор для списка заказов — без items и route."""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     customer_name = serializers.CharField(source='customer.user.get_full_name', read_only=True)
 
@@ -82,5 +94,3 @@ class CartSerializer(serializers.ModelSerializer):
 
 class OrderTransitionSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=Order.Status.choices)
-
-
