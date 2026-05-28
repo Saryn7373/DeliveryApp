@@ -1,5 +1,5 @@
-// Routing 
-export type NodeType = 'STORE' | 'ADDRESS';
+// Routing
+export type NodeType = 'STORE' | 'INTERSECTION' | 'ADDRESS';
 
 export interface Node {
   id: number;
@@ -21,12 +21,14 @@ export interface ShortestPathResponse {
   total_weight: number;
 }
 
-// Products 
+// Products
 export interface Product {
   id: number;
   name: string;
   description: string;
   price: string;
+  store: number;
+  stock_qty: number;
 }
 
 export interface Store {
@@ -55,7 +57,6 @@ export interface DeliveryAddress {
   id: number;
   street_address: string;
   node: Node;
-  customer: number;
 }
 
 export type CourierStatus = 'AVAILABLE' | 'BUSY';
@@ -84,8 +85,17 @@ export interface OrderItem {
   price_at_order: string;
 }
 
+export interface RouteNode {
+  id: number;
+  name: string;
+  type: NodeType;
+  latitude: number;
+  longitude: number;
+}
+
 export interface Route {
   path: number[];
+  path_nodes: RouteNode[];
   total_weight: number;
   computed_at: string;
 }
@@ -115,6 +125,30 @@ export interface OrderListItem {
   delivery_address: number | null;
   total_price: string;
   created_at: string;
+}
+
+// Cart
+export interface CartItemProduct {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  stock_qty: number;
+  store: number;
+}
+
+export interface CartItem {
+  id: number;
+  product: CartItemProduct;
+  quantity: number;
+  price_at_order: string;
+}
+
+export interface Cart {
+  id: number | null;
+  store: number | null;
+  total_price: string;
+  items: CartItem[];
 }
 
 export interface LoginRequest {

@@ -199,11 +199,15 @@
   color: #991b1b;
 }
 
+.storeLabel {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
 .productDescription {
-  margin-top: 16px;
-
+  margin-top: 8px;
   color: #4b5563;
-
   line-height: 1.6;
 }
 
@@ -296,10 +300,55 @@
 
 .productBottom {
   margin-top: auto;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 16px;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qtySelector {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid #dbe3f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.qtyBtn {
+  border: none;
+  background: transparent;
+  width: 30px;
+  height: 34px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2563eb;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.qtyBtn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.qtyBtn:disabled {
+  color: #d1d5db;
+  cursor: default;
+}
+
+.qtyNum {
+  min-width: 26px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  user-select: none;
 }

@@ -21,9 +21,16 @@ class ProductViewSet(mixins.ListModelMixin,
                      mixins.RetrieveModelMixin,
                      viewsets.GenericViewSet):
     """
-    GET /api/products/products/      — все товары
-    GET /api/products/products/{id}/ — конкретный товар
+    GET /api/products/products/         — все товары
+    GET /api/products/products/?store=1 — товары конкретного магазина
+    GET /api/products/products/{id}/    — конкретный товар
     """
     permission_classes = [AllowAny]
     serializer_class = ProductSerializer
-    queryset = Product.objects.all()
+
+    def get_queryset(self):
+        qs = Product.objects.all()
+        store_id = self.request.query_params.get('store')
+        if store_id:
+            qs = qs.filter(store_id=store_id)
+        return qs

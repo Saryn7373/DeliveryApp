@@ -26,10 +26,11 @@ def _get_cart(customer):
     )
 
 
-def _get_or_create_cart(customer):
+def _get_or_create_cart(customer, store=None):
     cart = Order.objects.filter(customer=customer, status=Order.Status.DRAFT).first()
     if cart is None:
-        store = Store.objects.first()
+        if store is None:
+            store = Store.objects.first()
         if store is None:
             raise ValueError('Нет доступных магазинов.')
         cart = Order.objects.create(
@@ -78,7 +79,7 @@ class CartView(APIView):
             return Response({'detail': 'Товар не найден.'}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            cart = _get_or_create_cart(customer)
+            cart = _get_or_create_cart(customer, store=product.store)
         except ValueError as exc:
             return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -98,6 +99,40 @@ class CartView(APIView):
 
 class CartItemView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def patch(self, request, item_id):
+        customer = _get_customer(request)
+        if customer is None:
+            return Response({'detail': 'Профиль покупателя не найден.'}, status=status.HTTP_403_FORBIDDEN)
+
+        cart = (Order.objects
+                .filter(customer=customer, status=Order.Status.DRAFT)
+                .prefetch_related('items__product')
+                .first())
+        if cart is None:
+            return Response({'detail': 'Корзина пуста.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            item = cart.items.get(pk=item_id)
+        except OrderItem.DoesNotExist:
+            return Response({'detail': 'Позиция не найдена.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (TypeError, ValueError):
+            return Response({'detail': 'Неверное количество.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if quantity <= 0:
+            item.delete()
+        else:
+            item.quantity = quantity
+            item.save(update_fields=['quantity'])
+
+        _recalc_total(cart)
+        updated = _get_cart(customer)
+        if updated is None:
+            return Response({'id': None, 'items': [], 'total_price': '0.00'})
+        return Response(CartSerializer(updated).data)
 
     def delete(self, request, item_id):
         customer = _get_customer(request)

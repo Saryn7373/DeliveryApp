@@ -1,50 +1,154 @@
-import React, { useState } from 'react';
-import { useFetch } from '../../../hooks/useFetch';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ordersApi } from '../../../api';
 import { buildOrderTree } from '../../../patterns/composite/OrderComposite';
 import { DeliveryIterator, iterateLeaves } from '../../../patterns/iterator/DeliveryIterator';
-import AssignCourierBlock from './AssignCourierBlock';
 import type { Order, OrderStatus } from '../../../types';
 import styles from '../OrdersPage.module.css';
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  DRAFT: 'Черновик',
-  ASSEMBLING: 'Сборка',
-  COURIER_SELECTION: 'Выбор курьера',
-  DELIVERY: 'Доставка',
-  COMPLETED: 'Выполнен',
-  CANCELLED: 'Отменён',
+// ── Step definitions ────────────────────────────────────────────────────────
+
+const STEPS: Array<{ key: OrderStatus; label: string; color: string }> = [
+  { key: 'ASSEMBLING',        label: 'Сборка',   color: '#d97706' },
+  { key: 'COURIER_SELECTION', label: 'Курьер',   color: '#7c3aed' },
+  { key: 'DELIVERY',          label: 'Доставка', color: '#2563eb' },
+  { key: 'COMPLETED',         label: 'Доставлен',color: '#16a34a' },
+];
+
+const TERMINAL: OrderStatus[] = ['COMPLETED', 'CANCELLED'];
+const CAN_CANCEL: OrderStatus[] = ['DRAFT', 'ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY'];
+const POLL_MS = 3000;
+
+// ── Progress Stepper ────────────────────────────────────────────────────────
+
+const OrderStepper: React.FC<{ status: OrderStatus; polling: boolean }> = ({
+  status,
+  polling,
+}) => {
+  const stepIdx = STEPS.findIndex((s) => s.key === status);
+
+  return (
+    <div className={styles.stepper}>
+      {STEPS.map((step, i) => {
+        const isCompleted = i < stepIdx;
+        const isActive = i === stepIdx;
+        const isUpcoming = i > stepIdx;
+
+        return (
+          <React.Fragment key={step.key}>
+            <div className={styles.stepItem}>
+              <div
+                className={[
+                  styles.stepCircle,
+                  isCompleted ? styles.stepCircleCompleted : '',
+                  isActive    ? styles.stepCircleActive    : '',
+                  isUpcoming  ? styles.stepCircleUpcoming  : '',
+                ].filter(Boolean).join(' ')}
+                style={
+                  isActive
+                    ? ({ '--step-color': step.color, borderColor: step.color, color: step.color } as React.CSSProperties)
+                    : undefined
+                }
+              >
+                {isCompleted ? '✓' : i + 1}
+              </div>
+              <span className={styles.stepLabel}>{step.label}</span>
+              {isActive && polling && (
+                <span className={styles.stepSubLabel}>в процессе…</span>
+              )}
+              {isActive && !polling && status !== 'COMPLETED' && (
+                <span className={styles.stepSubLabel}>{step.label}</span>
+              )}
+            </div>
+
+            {i < STEPS.length - 1 && (
+              <div className={styles.stepConnectorWrap}>
+                <div
+                  className={[
+                    styles.stepConnector,
+                    i < stepIdx ? styles.stepConnectorFilled : '',
+                  ].filter(Boolean).join(' ')}
+                />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
 };
 
-const STATUS_COLOR: Record<OrderStatus, string> = {
-  DRAFT: '#6b7280',
-  ASSEMBLING: '#d97706',
-  COURIER_SELECTION: '#7c3aed',
-  DELIVERY: '#2563eb',
-  COMPLETED: '#16a34a',
-  CANCELLED: '#dc2626',
-};
+// ── Main component ──────────────────────────────────────────────────────────
 
-const TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  DRAFT: ['ASSEMBLING', 'CANCELLED'],
-  ASSEMBLING: ['COURIER_SELECTION', 'CANCELLED'],
-  COURIER_SELECTION: ['DELIVERY', 'CANCELLED'],
-  DELIVERY: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
-};
+interface Props {
+  orderId: number;
+  onClose: () => void;
+  autoPolling?: boolean;
+  onStatusChange?: () => void;
+}
 
-const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
+const OrderDetail: React.FC<Props> = ({
   orderId,
   onClose,
+  autoPolling = false,
+  onStatusChange,
 }) => {
-  const { data: order, loading, error, reload } = useFetch<Order>(
-    () => ordersApi.get(orderId),
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const prevStatusRef = useRef<OrderStatus | null>(null);
+
+  const fetchOrder = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      try {
+        const data = await ordersApi.get(orderId);
+        setOrder(data);
+        setFetchError(null);
+      } catch (e: any) {
+        if (!silent) setFetchError(e?.detail ?? String(e));
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
     [orderId],
   );
 
-  const [transitioning, setTransitioning] = useState(false);
-  const [transitionError, setTransitionError] = useState<string | null>(null);
+  useEffect(() => { fetchOrder(); }, [fetchOrder]);
+
+  // Notify parent on status change
+  useEffect(() => {
+    if (!order) return;
+    if (prevStatusRef.current !== null && prevStatusRef.current !== order.status) {
+      onStatusChange?.();
+    }
+    prevStatusRef.current = order.status;
+  }, [order?.status]);
+
+  // Silent polling — stops at terminal status
+  useEffect(() => {
+    if (!autoPolling || !order) return;
+    if (TERMINAL.includes(order.status)) return;
+    const timer = setInterval(() => fetchOrder(true), POLL_MS);
+    return () => clearInterval(timer);
+  }, [autoPolling, order?.status, fetchOrder]);
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await ordersApi.transition(orderId, 'CANCELLED');
+      await fetchOrder();
+    } catch (e: any) {
+      setCancelError(e?.detail ?? String(e));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // ── Render ──
 
   if (loading)
     return (
@@ -55,11 +159,11 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
       </div>
     );
 
-  if (error || !order)
+  if (fetchError || !order)
     return (
       <div className={styles.modalOverlay}>
         <div className={styles.modal}>
-          <p className={styles.error}>{error}</p>
+          <p className={styles.error}>{fetchError}</p>
         </div>
       </div>
     );
@@ -67,47 +171,31 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
   const tree = buildOrderTree(order);
   const allNodes = new DeliveryIterator(tree).toArray();
   const leaves = iterateLeaves(tree).toArray();
-
-  const handleTransition = async (status: OrderStatus) => {
-    setTransitioning(true);
-    setTransitionError(null);
-    try {
-      await ordersApi.transition(orderId, status);
-      await reload();
-    } catch (e: any) {
-      setTransitionError(e?.detail ?? String(e));
-    } finally {
-      setTransitioning(false);
-    }
-  };
-
-  const nextStatuses = TRANSITIONS[order.status];
-
-  // Кнопка DELIVERY доступна только если курьер назначен
-  const canTransitionTo = (s: OrderStatus) => {
-    if (s === 'DELIVERY' && !order.courier) return false;
-    return true;
-  };
+  const canCancel = CAN_CANCEL.includes(order.status);
+  const isCancelled = order.status === 'CANCELLED';
+  const isLivePolling = autoPolling && !TERMINAL.includes(order.status);
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <button className={styles.closeBtn} onClick={onClose}>
-          ✕
-        </button>
+        <button className={styles.closeBtn} onClick={onClose}>✕</button>
 
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>Заказ #{order.id}</h2>
-          <span
-            className={styles.statusBadge}
-            style={{
-              background: STATUS_COLOR[order.status] + '22',
-              color: STATUS_COLOR[order.status],
-            }}
-          >
-            {order.status_display}
-          </span>
+          {isLivePolling && (
+            <span className={styles.livePill}>
+              <span className={styles.liveDot} />
+              Live
+            </span>
+          )}
         </div>
+
+        {/* Progress stepper */}
+        {!isCancelled ? (
+          <OrderStepper status={order.status} polling={isLivePolling} />
+        ) : (
+          <div className={styles.cancelledBanner}>Заказ отменён</div>
+        )}
 
         {/* Composite tree info */}
         <div className={styles.treeInfo}>
@@ -121,9 +209,7 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
           </div>
           <div className={styles.treeInfoItem}>
             <span className={styles.treeLabel}>Итого</span>
-            <span className={styles.treeValue}>
-              {tree.getTotalPrice().toFixed(2)} ₽
-            </span>
+            <span className={styles.treeValue}>{tree.getTotalPrice().toFixed(2)} ₽</span>
           </div>
           <div className={styles.treeInfoItem}>
             <span className={styles.treeLabel}>Кол-во товаров</span>
@@ -131,74 +217,28 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
           </div>
         </div>
 
+        {/* Состав заказа */}
         <h3 className={styles.sectionTitle}>Состав заказа</h3>
         <div className={styles.itemsList}>
           {leaves.map((leaf) => (
             <div key={leaf.getId()} className={styles.orderItem}>
               <span className={styles.itemName}>{leaf.getName()}</span>
-              <span className={styles.itemPrice}>
-                {leaf.getTotalPrice().toFixed(2)} ₽
-              </span>
+              <span className={styles.itemPrice}>{leaf.getTotalPrice().toFixed(2)} ₽</span>
             </div>
           ))}
         </div>
 
-        {/* Блок курьера — показываем всегда если назначен */}
-        {/* {order.courier && order.status !== 'COURIER_SELECTION' && (
-          <div className={styles.courierBlock}>
-            <span className={styles.sectionTitle}>Курьер:</span>{' '}
-            {order.courier.user.first_name} {order.courier.user.last_name}
-            <span
-              className={styles.statusBadge}
-              style={{
-                background:
-                  order.courier.status === 'AVAILABLE'
-                    ? '#16a34a22'
-                    : '#dc262622',
-                color:
-                  order.courier.status === 'AVAILABLE' ? '#16a34a' : '#dc2626',
-                marginLeft: 8,
-              }}
-            >
-              {order.courier.status === 'AVAILABLE' ? 'Доступен' : 'Занят'}
-            </span>
-          </div>
-        )} */}
-
-        {/* Назначение курьера — только в статусе COURIER_SELECTION */}
-        {/* {order.status === 'COURIER_SELECTION' && (
-          <AssignCourierBlock
-            orderId={order.id}
-            currentCourier={order.courier}
-            onAssigned={reload}
-          />
-        )} */}
-
-        {/* Переходы статусов */}
-        {nextStatuses.length > 0 && (
+        {canCancel && (
           <div className={styles.transitions}>
-            <p className={styles.sectionTitle}>Перевести в статус:</p>
-            <div className={styles.transitionBtns}>
-              {nextStatuses.map((s) => (
-                <button
-                  key={s}
-                  className={styles.transitionBtn}
-                  style={{ borderColor: STATUS_COLOR[s], color: STATUS_COLOR[s] }}
-                  onClick={() => handleTransition(s)}
-                  disabled={transitioning || !canTransitionTo(s)}
-                  title={
-                    s === 'DELIVERY' && !order.courier
-                      ? 'Сначала назначьте курьера'
-                      : undefined
-                  }
-                >
-                  {STATUS_LABELS[s]}
-                  {s === 'DELIVERY' && !order.courier ? ' 🔒' : ''}
-                </button>
-              ))}
-            </div>
-            {transitionError && (
-              <p className={styles.transitionError}>{transitionError}</p>
+            <button
+              className={styles.cancelBtn}
+              onClick={handleCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? 'Отмена...' : 'Отменить заказ'}
+            </button>
+            {cancelError && (
+              <p className={styles.transitionError}>{cancelError}</p>
             )}
           </div>
         )}
@@ -207,5 +247,4 @@ const OrderDetail: React.FC<{ orderId: number; onClose: () => void }> = ({
   );
 };
 
-
-export default OrderDetail
+export default OrderDetail;

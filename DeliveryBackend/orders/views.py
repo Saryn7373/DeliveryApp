@@ -1,3 +1,6 @@
+import threading
+import time
+
 from django.core.exceptions import ValidationError
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -138,4 +141,50 @@ class OrderViewSet(mixins.ListModelMixin,
             )
 
         return Response(OrderSerializer(order).data)
+
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=['post'], url_path='demo_progress')
+    def demo_progress(self, request, pk=None):
+        """Starts automatic order lifecycle progression for demo purposes."""
+        order = self.get_object()
+
+        PROGRESSABLE = ('ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY')
+        if order.status not in PROGRESSABLE:
+            return Response(
+                {'detail': f'Заказ #{order.pk} в статусе {order.status}, прогресс невозможен.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        def run(order_id: int) -> None:
+            from orders.models import Order as OrderModel
+            from users.models import Courier
+
+            STATUS_CHAIN = ['ASSEMBLING', 'COURIER_SELECTION', 'DELIVERY', 'COMPLETED']
+            DELAYS = {'COURIER_SELECTION': 4, 'DELIVERY': 7, 'COMPLETED': 10}
+
+            try:
+                order_obj = OrderModel.objects.get(pk=order_id)
+                cur_idx = STATUS_CHAIN.index(order_obj.status)
+            except (OrderModel.DoesNotExist, ValueError):
+                return
+
+            for target in STATUS_CHAIN[cur_idx + 1:]:
+                time.sleep(DELAYS.get(target, 5))
+                try:
+                    order_obj.refresh_from_db()
+                except Exception:
+                    return
+                if order_obj.status == 'CANCELLED':
+                    return
+                if target == 'COURIER_SELECTION':
+                    if not Courier.objects.filter(status=Courier.Status.AVAILABLE).exists():
+                        Courier.objects.update(status=Courier.Status.AVAILABLE)
+                try:
+                    order_obj.transition(target)
+                except Exception as exc:
+                    print(f"[demo_progress] order #{order_id} → {target} failed: {exc}")
+                    return
+
+        threading.Thread(target=run, args=(order.pk,), daemon=True).start()
+        return Response({'detail': 'Demo progression started.'})
 

@@ -9,6 +9,7 @@ import type {
   Store,
   Product,
   ShortestPathResponse,
+  Cart,
 } from '../types';
 
 // ─── Orders 
@@ -32,6 +33,9 @@ export const ordersApi = {
 
   transition: (orderId: number, status: string) =>
     api.post<Order>(`/orders/${orderId}/transition/`, { status }),
+
+  demoProgress: (orderId: number) =>
+    api.post<{ detail: string }>(`/orders/${orderId}/demo_progress/`),
 };
 
 // ─── Products 
@@ -43,12 +47,11 @@ export const productsApi = {
   product: (id: number) => api.get<Product>(`/products/products/${id}/`),
 };
 
-// ─── Users 
+// ─── Users
 export const usersApi = {
   customers: () => api.get<Customer[]>('/users/customers/'),
   customer: (id: number) => api.get<Customer>(`/users/customers/${id}/`),
-  customerAddresses: (id: number) =>
-    api.get<DeliveryAddress[]>(`/users/customers/${id}/addresses/`),
+  addresses: () => api.get<DeliveryAddress[]>('/users/addresses/'),
 
   couriers: () => api.get<Courier[]>('/users/couriers/'),
   courier: (id: number) => api.get<Courier>(`/users/couriers/${id}/`),
@@ -56,7 +59,19 @@ export const usersApi = {
     api.patch<Courier>(`/users/couriers/${id}/`, data),
 };
 
-// ─── Routing 
+// ─── Cart
+export const cartApi = {
+  get: () => api.get<Cart>('/cart/'),
+  add: (productId: number, quantity: number) =>
+    api.post<Cart>('/cart/', { product_id: productId, quantity }),
+  updateItem: (itemId: number, quantity: number) =>
+    api.patch<Cart>(`/cart/items/${itemId}/`, { quantity }),
+  removeItem: (itemId: number) => api.delete(`/cart/items/${itemId}/`),
+  checkout: (addressId: number) =>
+    api.post<Order>('/cart/checkout/', { delivery_address_id: addressId }),
+};
+
+// ─── Routing
 export const routingApi = {
   shortestPath: (fromNode: number, toNode: number) =>
     api.post<ShortestPathResponse>('/routing/shortest-path/', {

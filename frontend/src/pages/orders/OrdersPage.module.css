@@ -305,6 +305,28 @@
   border-radius: 6px;
 }
 
+.cancelBtn {
+  width: 100%;
+  padding: 10px 0;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  background: white;
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ── Assign courier block ── */
 .assignBlock {
   margin-bottom: 20px;
@@ -368,4 +390,201 @@
   font-size: 0.8rem;
   color: #dc2626;
   margin-top: 8px;
+}
+
+/* ── Route ── */
+.routeSection {
+  margin-bottom: 20px;
+}
+
+.routeNode {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.routeNodeType {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.routeNodeName {
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.routeArrow {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  padding: 2px 20px;
+}
+
+.routeWeight {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.routeTag {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.routeTagEnd {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* ── Live pill ── */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.livePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #16a34a;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  padding: 3px 9px;
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  flex-shrink: 0;
+  animation: livePulse 1.4s ease-in-out infinite;
+}
+
+/* ── Progress stepper ── */
+@keyframes stepRingPulse {
+  0%   { box-shadow: 0 0 0 0   var(--step-color, #2563eb); }
+  70%  { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0   transparent; }
+}
+
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  padding: 20px 0 4px;
+}
+
+.stepItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.stepCircle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid #e5e7eb;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.4s ease, border-color 0.4s ease, color 0.4s ease;
+}
+
+.stepCircleCompleted {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+.stepCircleActive {
+  background: white;
+  animation: stepRingPulse 2s ease-out infinite;
+}
+
+.stepCircleUpcoming {
+  border-color: #e5e7eb;
+  color: #d1d5db;
+}
+
+.stepLabel {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+  letter-spacing: 0.02em;
+  word-break: break-word;
+  max-width: 64px;
+}
+
+.stepSubLabel {
+  font-size: 0.6rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.stepConnectorWrap {
+  flex: 0.8;
+  padding-top: 16px; /* aligns connector with circle centre (34px / 2 − 1px) */
+}
+
+.stepConnector {
+  position: relative;
+  height: 2px;
+  background: #e5e7eb;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.stepConnector::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #16a34a;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.55s ease;
+}
+
+.stepConnectorFilled::after {
+  transform: scaleX(1);
+}
+
+/* ── Cancelled banner ── */
+.cancelledBanner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #991b1b;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
 }
